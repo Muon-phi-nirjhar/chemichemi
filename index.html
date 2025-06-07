@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheRe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-center">Chemical Reaction Generator</h1>
+        <div class="mb-4">
+            <label for="reactants" class="block text-sm font-medium text-gray-700">Enter Reactants (e.g., H2 + O2):</label>
+            <input type="text" id="reactants" class="mt-1 p-2 w-full border rounded-md" placeholder="e.g., H2 + O2">
+        </div>
+        <button onclick="generateReaction()" class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">Generate Reaction</button>
+        <div id="result" class="mt-6 p-4 bg-gray-50 rounded-md hidden">
+            <h2 class="text-lg font-semibold">Reaction Result:</h2>
+            <p id="reactionOutput" class="mt-2"></p>
+        </div>
+    </div>
+
+    <script>
+        // Comprehensive reaction database covering all major reaction types
+        const reactionDatabase = [
+            // Combination (A + B → AB)
+            { reactants: ["H2", "O2"], products: ["H2O"], equation: "2H₂ + O₂ → 2H₂O", type: "Combination" },
+            { reactants: ["Na", "Cl2"], products: ["NaCl"], equation: "2Na + Cl₂ → 2NaCl", type: "Combination" },
+            { reactants: ["C", "O2"], products: ["CO2"], equation: "C + O₂ → CO₂", type: "Combination" },
+
+            // Decomposition (AB → A + B)
+            { reactants: ["H2O"], products: ["H2", "O2"], equation: "2H₂O → 2H₂ + O₂", type: "Decomposition" },
+            { reactants: ["HgO"], products: ["Hg", "O2"], equation: "2HgO → 2Hg + O₂", type: "Decomposition" },
+            { reactants: ["KClO3"], products: ["KCl", "O2"], equation: "2KClO₃ → 2KCl + 3O₂", type: "Decomposition" },
+
+            // Single Displacement (A + BC → AC + B)
+            { reactants: ["Fe", "CuSO4"], products: ["FeSO4", "Cu"], equation: "Fe + CuSO₄ → FeSO₄ + Cu", type: "Single Displacement" },
+            { reactants: ["Zn", "HCl"], products: ["ZnCl2", "H2"], equation: "Zn + 2HCl → ZnCl₂ + H₂", type: "Single Displacement" },
+            { reactants: ["Cl2", "KI"], products: ["KCl", "I2"], equation: "Cl₂ + 2KI → 2KCl + I₂", type: "Single Displacement" },
+
+            // Double Displacement (AB + CD → AD + CB)
+            { reactants: ["AgNO3", "NaCl"], products: ["AgCl", "NaNO3"], equation: "AgNO₃ + NaCl → AgCl + NaNO₃", type: "Double Displacement" },
+            { reactants: ["BaCl2", "Na2SO4"], products: ["BaSO4", "NaCl"], equation: "BaCl₂ + Na₂SO₄ → BaSO₄ + 2NaCl", type: "Double Displacement" },
+            { reactants: ["Pb(NO3)2", "KI"], products: ["PbI2", "KNO3"], equation: "Pb(NO₃)₂ + 2KI → PbI₂ + 2KNO₃", type: "Double Displacement" },
+
+            // Combustion (Hydrocarbon + O2 → CO2 + H2O)
+            { reactants: ["CH4", "O2"], products: ["CO2", "H2O"], equation: "CH₄ + 2O₂ → CO₂ + 2H₂O", type: "Combustion" },
+            { reactants: ["C2H5OH", "O2"], products: ["CO2", "H2O"], equation: "C₂H₅OH + 3O₂ → 2CO₂ + 3H₂O", type: "Combustion" },
+            { reactants: ["C6H12O6", "O2"], products: ["CO2", "H2O"], equation: "C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O", type: "Combustion" },
+
+            // Neutralization (Acid + Base → Salt + Water)
+            { reactants: ["HCl", "NaOH"], products: ["NaCl", "H2O"], equation: "HCl + NaOH → NaCl + H₂O", type: "Neutralization" },
+            { reactants: ["H2SO4", "KOH"], products: ["K2SO4", "H2O"], equation: "H₂SO₄ + 2KOH → K₂SO₄ + 2H₂O", type: "Neutralization" },
+            { reactants: ["HNO3", "Ca(OH)2"], products: ["Ca(NO3)2", "H2O"], equation: "2HNO₃ + Ca(OH)₂ → Ca(NO₃)₂ + 2H₂O", type: "Neutralization" },
+
+            // Redox (Involving electron transfer, often overlaps with other types)
+            { reactants: ["Zn", "CuSO4"], products: ["ZnSO4", "Cu"], equation: "Zn + CuSO₄ → ZnSO₄ + Cu", type: "Redox (Single Displacement)" },
+            { reactants: ["Fe2O3", "CO"], products: ["Fe", "CO2"], equation: "Fe₂O₃ + 3CO → 2Fe + 3CO₂", type: "Redox" },
+            { reactants: ["KMnO4", "HCl"], products: ["KCl", "MnCl2", "Cl2", "H2O"], equation: "2KMnO₄ + 16HCl → 2KCl + 2MnCl₂ + 5Cl₂ + 8H₂O", type: "Redox" },
+
+            // Precipitation (Forming an insoluble product, often overlaps with Double Displacement)
+            { reactants: ["AgNO3", "KCl"], products: ["AgCl", "KNO3"], equation: "AgNO₃ + KCl → AgCl↓ + KNO₃", type: "Precipitation" },
+            { reactants: ["CaCl2", "Na2CO3"], products: ["CaCO3", "NaCl"], equation: "CaCl₂ + Na₂CO₃ → CaCO₃↓ + 2NaCl", type: "Precipitation" },
+            { reactants: ["FeCl3", "NaOH"], products: ["Fe(OH)3", "NaCl"], equation: "FeCl₃ + 3NaOH → Fe(OH)₃↓ + 3NaCl", type: "Precipitation" },
+        ];
+
+        function generateReaction() {
+            const input = document.getElementById("reactants").value.trim();
+            const resultDiv = document.getElementById("result");
+            const output = document.getElementById("reactionOutput");
+
+            // Parse input (e.g., "H2 + O2" -> ["H2", "O2"])
+            const reactants = input.split("+").map(r => r.trim().replace(/\s/g, ""));
+
+            // Find matching reaction
+            const reaction = reactionDatabase.find(r => {
+                const dbReactants = r.reactants.map(r => r.toLowerCase()).sort();
+                const inputReactants = reactants.map(r => r.toLowerCase()).sort();
+                return dbReactants.length === inputReactants.length && dbReactants.every((val, idx) => val === inputReactants[idx]);
+            });
+
+            // Display result
+            if (reaction) {
+                output.innerHTML = `<strong>Equation:</strong> ${reaction.equation}<br><strong>Products:</strong> ${reaction.products.join(", ")}<br><strong>Type:</strong> ${reaction.type}`;
+                resultDiv.classList.remove("hidden");
+            } else {
+                output.innerHTML = "No reaction found for the given reactants. Try examples like: H2 + O2, H2O, Zn + HCl, AgNO3 + NaCl, CH4 + O2, HCl + NaOH, Fe2O3 + CO, CaCl2 + Na2CO3.";
+                resultDiv.classList.remove("hidden");
+            }
+        }
+    </script>
+</body>
+</html>
